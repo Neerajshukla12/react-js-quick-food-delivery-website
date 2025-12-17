@@ -1,135 +1,147 @@
-import firebase from '../config/firebase';
-const db = firebase.firestore();
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "../config/firebase";
 
+// ================= UPDATE USER =================
 const update_user = () => {
-    return (dispatch) => {
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                // User is signed in.
-                // console.log("update_user =>>", user.uid)
-                db.collection('users').doc(user.uid).get().then((snapshot) => {
-                    // console.log("snapshot.data =>>", snapshot.data());
-                    dispatch({
-                        type: 'SET_USER',
-                        user: { ...snapshot.data(), isLogin: true }
-                    })
-                })
-            } else {
-                // No user is signed in.
-            }
+  return (dispatch) => {
+    const auth = getAuth();
 
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        dispatch({
+          type: "SET_USER",
+          user: { ...snap.data(), isLogin: true },
         });
-    }
-}
+      }
+    });
+  };
+};
 
+// ================= REMOVE USER =================
 const remove_user = () => {
-    return (dispatch) => {
-        firebase.auth().signOut().then(() => {
-            // Sign-out successful.
-            console.log("Successfully log out");
-            dispatch({
-                type: 'REMOVE_USER',
-                user: { isLogin: false }
-            })
-        }).catch((error) => {
-            // An error happened.
-            let errorMessage = error.message;
-            console.log("Log Out Error Message => ", errorMessage);
-        });
+  return async (dispatch) => {
+    try {
+      const auth = getAuth();
+      await signOut(auth);
+      dispatch({
+        type: "REMOVE_USER",
+        user: { isLogin: false },
+      });
+    } catch (error) {
+      console.log("Logout Error:", error.message);
     }
-}
+  };
+};
 
+// ================= RESTAURANT LIST =================
 const restaurant_list = () => {
-    return (dispatch) => {
-        db.collection('users').onSnapshot(snapshot => {
-            const restaurantList = [];
-            snapshot.forEach(doc => {
-                if (doc.data().isRestaurant) {
-                    const obj = { id: doc.id, ...doc.data() }
-                    restaurantList.push(obj);
-                }
-            })
-            // console.log('Restaurant List', restaurantList);
-            dispatch({
-                type: 'RESTAURANT_LIST',
-                restaurantList: restaurantList,
-            })
-        })
-    }
-}
+  return (dispatch) => {
+    onSnapshot(collection(db, "users"), (snapshot) => {
+      const restaurantList = [];
+      snapshot.forEach((docSnap) => {
+        if (docSnap.data().isRestaurant) {
+          restaurantList.push({ id: docSnap.id, ...docSnap.data() });
+        }
+      });
 
+      dispatch({
+        type: "RESTAURANT_LIST",
+        restaurantList,
+      });
+    });
+  };
+};
+
+// ================= ORDER REQUEST =================
 const order_request = () => {
-    return (dispatch) => {
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                // console.log("user uid => ", user.uid)
-                db.collection('users').doc(user.uid).collection("orderRequest").onSnapshot(snapshot => {
-                    const orderRequest = [];
-                    snapshot.forEach(doc => {
-                        const obj = { id: doc.id, ...doc.data() }
-                        // console.log("Order Request From Action => ", obj)
-                        orderRequest.push(obj)
-                    })
-                    dispatch({
-                        type: 'ORDER_REQUEST',
-                        orderRequest: orderRequest,
-                    })
-                })
-            }
-        });
-    }
-}
+  return (dispatch) => {
+    const auth = getAuth();
 
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        onSnapshot(
+          collection(db, "users", user.uid, "orderRequest"),
+          (snapshot) => {
+            const orderRequest = [];
+            snapshot.forEach((docSnap) => {
+              orderRequest.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            dispatch({
+              type: "ORDER_REQUEST",
+              orderRequest,
+            });
+          }
+        );
+      }
+    });
+  };
+};
+
+// ================= MY ORDER =================
 const my_order = () => {
-    return (dispatch) => {
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                // console.log("user uid => ", user.uid)
-                db.collection('users').doc(user.uid).collection("myOrder").onSnapshot(snapshot => {
-                    const myOrder = [];
-                    snapshot.forEach(doc => {
-                        const obj = { id: doc.id, ...doc.data() }
-                        // console.log("Order Request From Action => ", obj)
-                        myOrder.push(obj)
-                    })
-                    dispatch({
-                        type: 'MY_ORDER',
-                        myOrder: myOrder,
-                    })
-                })
-            }
-        });
-    }
-}
+  return (dispatch) => {
+    const auth = getAuth();
 
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        onSnapshot(
+          collection(db, "users", user.uid, "myOrder"),
+          (snapshot) => {
+            const myOrder = [];
+            snapshot.forEach((docSnap) => {
+              myOrder.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            dispatch({
+              type: "MY_ORDER",
+              myOrder,
+            });
+          }
+        );
+      }
+    });
+  };
+};
+
+// ================= MY FOODS =================
 const my_foods = () => {
-    return (dispatch) => {
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                // console.log("user uid => ", user.uid)
-                db.collection('users').doc(user.uid).collection("menuItems").onSnapshot(snapshot => {
-                    const myFoods = [];
-                    snapshot.forEach(doc => {
-                        const obj = { id: doc.id, ...doc.data() }
-                        // console.log("Order Request From Action => ", obj)
-                        myFoods.push(obj)
-                    })
-                    dispatch({
-                        type: 'MY_FOODS',
-                        myFoods: myFoods,
-                    })
-                })
-            }
-        });
-    }
-}
+  return (dispatch) => {
+    const auth = getAuth();
 
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        onSnapshot(
+          collection(db, "users", user.uid, "menuItems"),
+          (snapshot) => {
+            const myFoods = [];
+            snapshot.forEach((docSnap) => {
+              myFoods.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            dispatch({
+              type: "MY_FOODS",
+              myFoods,
+            });
+          }
+        );
+      }
+    });
+  };
+};
 
 export {
-    update_user,
-    remove_user,
-    restaurant_list,
-    order_request,
-    my_order,
-    my_foods,
-}
+  update_user,
+  remove_user,
+  restaurant_list,
+  order_request,
+  my_order,
+  my_foods,
+};

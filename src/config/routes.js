@@ -1,36 +1,32 @@
-import React from 'react';
-import { Router, Route } from 'react-router-dom';
-import { createBrowserHistory } from 'history';
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from '../screens/Home';
-import RegisterRestaurant from '../screens/RegisterRestaurant';
-import Login from '../screens/Login';
-import Restaurants from '../screens/Restaurants';
-import RestaurantDetails from '../screens/RestaurantDetails';
-import AddMenuItems from '../screens/AddMenuItems';
-import OrderRequests from '../screens/OrderRequests';
-import MyOrders from '../screens/MyOrders';
-import MyFoods from '../screens/MyFoods';
+import Home from "../screens/Home";
+import RegisterRestaurant from "../screens/RegisterRestaurant";
+import Login from "../screens/Login";
+import Restaurants from "../screens/Restaurants";
+import RestaurantDetails from "../screens/RestaurantDetails";
+import AddMenuItems from "../screens/AddMenuItems";
+import OrderRequests from "../screens/OrderRequests";
+import MyOrders from "../screens/MyOrders";
+import MyFoods from "../screens/MyFoods";
 
+const MyRoutes = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/register-restaurant" element={<RegisterRestaurant />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/restaurants" element={<Restaurants />} />
+        <Route path="/restaurant-details" element={<RestaurantDetails />} />
+        <Route path="/add-menu-items" element={<AddMenuItems />} />
+        <Route path="/order-requests" element={<OrderRequests />} />
+        <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/my-foods" element={<MyFoods />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
-
-const customHistory = createBrowserHistory();
-
-// Routes For Navigation
-const MyRoutes = () => (
-    <Router history={customHistory}>
-        <div>
-            <Route exact path='/' component={Home}></Route>
-            <Route path='/register-restaurant' component={RegisterRestaurant}></Route>
-            <Route path='/login' component={Login}></Route>
-            <Route path='/restaurants' component={Restaurants}></Route>
-            <Route path='/restaurant-details' component={RestaurantDetails}></Route>
-            <Route path='/add-menu-items' component={AddMenuItems}></Route>
-            <Route path='/order-requests' component={OrderRequests}></Route>
-            <Route path='/my-orders' component={MyOrders}></Route>
-            <Route path='/my-foods' component={MyFoods}></Route>
-        </div>
-    </Router>
-)
-
-export default MyRoutes
+export default MyRoutes;

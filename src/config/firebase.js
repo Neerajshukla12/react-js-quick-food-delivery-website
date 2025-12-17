@@ -1,199 +1,180 @@
-import * as firebase from 'firebase';
-import 'firebase/firestore'
+// ================= IMPORTS =================
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  addDoc,
+  collection,
+} from "firebase/firestore";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
 
-var firebaseConfig = {
-    apiKey: "AIzaSyBnLUHidIafVYqJ4nwPGn_uK5lLriGokwE",
-    authDomain: "react-quick-food.firebaseapp.com",
-    databaseURL: "https://react-quick-food.firebaseio.com",
-    projectId: "react-quick-food",
-    storageBucket: "react-quick-food.appspot.com",
-    messagingSenderId: "775496944172",
-    appId: "1:775496944172:web:c57dc1dbd0aa26dd"
+// ================= FIREBASE CONFIG =================
+const firebaseConfig = {
+  apiKey: "AIzaSyBnLUHidIafVYqJ4nwPGn_uK5lLriGokwE",
+  authDomain: "react-quick-food.firebaseapp.com",
+  projectId: "react-quick-food",
+  storageBucket: "react-quick-food.appspot.com",
+  messagingSenderId: "775496944172",
+  appId: "1:775496944172:web:c57dc1dbd0aa26dd",
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// ================= INIT FIREBASE =================
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-const db = firebase.firestore();
+// ================= SIGN UP =================
+async function signUp(userDetails) {
+  try {
+    const {
+      userName,
+      userEmail,
+      userPassword,
+      userCity,
+      userCountry,
+      userGender,
+      userAge,
+      userProfileImage,
+      isRestaurant,
+      typeOfFood,
+      propsHistory,
+    } = userDetails;
 
-function signUp(userDetails) {
-    return new Promise((resolve, reject) => {
-        const { userName, userEmail, userPassword, userCity, userCountry, userGender, userAge, userProfileImage, isRestaurant, typeOfFood } = userDetails;
-        firebase.auth().createUserWithEmailAndPassword(userDetails.userEmail, userDetails.userPassword).then((success) => {
-            let user = firebase.auth().currentUser;
-            var uid;
-            if (user != null) {
-                uid = user.uid;
-            };
-            firebase.storage().ref().child(`userProfileImage/${uid}/` + userProfileImage.name).put(userProfileImage).then((url) => {
-                url.ref.getDownloadURL().then((success) => {
-                    const userProfileImageUrl = success
-                    console.log(userProfileImageUrl)
-                    const userDetailsForDb = {
-                        userName: userName,
-                        userEmail: userEmail,
-                        userPassword: userPassword,
-                        userCity: userCity,
-                        userCountry: userCountry,
-                        userGender: userGender,
-                        userAge: userAge,
-                        userUid: uid,
-                        isRestaurant: isRestaurant,
-                        userProfileImageUrl: userProfileImageUrl,
-                        typeOfFood: typeOfFood,
-                    }
-                    db.collection("users").doc(uid).set(userDetailsForDb).then((docRef) => {
-                        // console.log("Document written with ID: ", docRef.id);
-                        if(userDetailsForDb.isRestaurant){
-                            userDetails.propsHistory.push("/order-requests");
-                            resolve(userDetailsForDb)
-                        }else{
-                            userDetails.propsHistory.push("/");
-                            resolve(userDetailsForDb)
-                        }
-                    }).catch(function (error) {
-                        console.error("Error adding document: ", error);
-                        reject(error)
-                    })
-                }).catch((error) => {
-                    // Handle Errors here.
-                    let errorCode = error.code;
-                    let errorMessage = error.message;
-                    console.log("Error in getDownloadURL function", errorMessage);
-                    reject(errorMessage)
-                })
-            }).catch((error) => {
-                // Handle Errors here.
-                let errorCode = error.code;
-                let errorMessage = error.message;
-                console.log("Error in Image Uploading", errorMessage);
-                reject(errorMessage)
-            })
-        }).catch((error) => {
-            var errorMessage = error.message;
-            console.log("Error in Authentication", errorMessage);
-            reject(errorMessage)
-        })
-    })
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      userEmail,
+      userPassword
+    );
+
+    const uid = userCredential.user.uid;
+
+    // Upload profile image
+    const imageRef = ref(
+      storage,
+      `userProfileImage/${uid}/${userProfileImage.name}`
+    );
+    await uploadBytes(imageRef, userProfileImage);
+    const imageUrl = await getDownloadURL(imageRef);
+
+    const userData = {
+      userName,
+      userEmail,
+      userCity,
+      userCountry,
+      userGender,
+      userAge,
+      userUid: uid,
+      isRestaurant,
+      userProfileImageUrl: imageUrl,
+      typeOfFood,
+    };
+
+    await setDoc(doc(db, "users", uid), userData);
+
+    propsHistory.push(isRestaurant ? "/order-requests" : "/");
+    return userData;
+  } catch (error) {
+    throw error.message;
+  }
 }
 
-function logIn(userLoginDetails) {
-    return new Promise((resolve, reject) => {
-        const { userLoginEmail, userLoginPassword } = userLoginDetails;
-        firebase.auth().signInWithEmailAndPassword(userLoginEmail, userLoginPassword).then((success) => {
-            db.collection('users').doc(success.user.uid).get().then((snapshot) => {
-                console.log("snapshot.data =>>", snapshot.data().isRestaurant);
-                if(snapshot.data().isRestaurant){
-                    userLoginDetails.propsHistory.push("/order-requests");
-                    resolve(success)
-                }else{
-                    userLoginDetails.propsHistory.push("/");
-                    resolve(success)
-                }             
-            })
-        }).catch((error) => {
-            // Handle Errors here.
-            // var errorCode = error.code;
-            var errorMessage = error.message;
-            reject(errorMessage)
-        });
+// ================= LOGIN =================
+async function logIn(userLoginDetails) {
+  try {
+    const { userLoginEmail, userLoginPassword, propsHistory } =
+      userLoginDetails;
 
-    })
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      userLoginEmail,
+      userLoginPassword
+    );
+
+    const snap = await getDoc(doc(db, "users", userCredential.user.uid));
+
+    propsHistory.push(snap.data().isRestaurant ? "/order-requests" : "/");
+    return userCredential;
+  } catch (error) {
+    throw error.message;
+  }
 }
 
-function addItem(itemDetails) {
-    const { itemTitle, itemIngredients, itemPrice, itemImage, chooseItemType, } = itemDetails;
-    return new Promise((resolve, reject) => {
-        let user = firebase.auth().currentUser;
-        var uid;
-        if (user != null) {
-            uid = user.uid;
-        };
-        firebase.storage().ref().child(`itemImage/${uid}/` + itemImage.name).put(itemImage).then((url) => {
-            url.ref.getDownloadURL().then((success) => {
-                const itemImageUrl = success
-                console.log(itemImageUrl)
-                const itemDetailsForDb = {
-                    itemTitle: itemTitle,
-                    itemIngredients: itemIngredients,
-                    itemPrice: itemPrice,
-                    itemImageUrl: itemImageUrl,
-                    chooseItemType: chooseItemType,
-                    // userUid: uid,
-                }
-                db.collection("users").doc(uid).collection("menuItems").add(itemDetailsForDb).then((docRef) => {
-                    // console.log("Document written with ID: ", docRef.id);
-                    // itemDetails.propsHistory.push("/my-foods");
-                    resolve("Successfully added food item")
-                }).catch(function (error) {
-                    let errorCode = error.code;
-                    let errorMessage = error.message;
-                    reject(errorMessage)
-                    // console.error("Error adding document: ", error);
-                })
-            }).catch((error) => {
-                // Handle Errors here.
-                let errorCode = error.code;
-                let errorMessage = error.message;
-                console.log("Error in getDownloadURL function", errorCode);
-                console.log("Error in getDownloadURL function", errorMessage);
-                reject(errorMessage)
-            })
-        }).catch((error) => {
-            // Handle Errors here.
-            let errorCode = error.code;
-            let errorMessage = error.message;
-            console.log("Error in Image Uploading", errorMessage);
-            reject(errorMessage)
-        })
-    })
+// ================= ADD ITEM =================
+async function addItem(itemDetails) {
+  try {
+    const {
+      itemTitle,
+      itemIngredients,
+      itemPrice,
+      itemImage,
+      chooseItemType,
+    } = itemDetails;
+
+    const uid = auth.currentUser.uid;
+
+    const imageRef = ref(storage, `itemImage/${uid}/${itemImage.name}`);
+    await uploadBytes(imageRef, itemImage);
+    const imageUrl = await getDownloadURL(imageRef);
+
+    await addDoc(collection(db, "users", uid, "menuItems"), {
+      itemTitle,
+      itemIngredients,
+      itemPrice,
+      itemImageUrl: imageUrl,
+      chooseItemType,
+    });
+
+    return "Successfully added food item";
+  } catch (error) {
+    throw error.message;
+  }
 }
 
-function orderNow(cartItemsList, totalPrice, resDetails, userDetails, history) {
-    return new Promise((resolve, reject) => {
-        let user = firebase.auth().currentUser;
-        var uid;
-        if (user != null) {
-            uid = user.uid;
-        };
+// ================= ORDER NOW =================
+async function orderNow(cartItemsList, totalPrice, resDetails, userDetails) {
+  try {
+    const uid = auth.currentUser.uid;
 
-        const myOrder = {
-            itemsList: cartItemsList,
-            totalPrice: totalPrice,
-            status: "PENDING",
-            ...resDetails,
-        }
+    const myOrder = {
+      itemsList: cartItemsList,
+      totalPrice,
+      status: "PENDING",
+      ...resDetails,
+    };
 
-        const orderRequest = {
-            itemsList: cartItemsList,
-            totalPrice: totalPrice,
-            status: "PENDING",
-            ...userDetails,
-        }
+    const orderRequest = {
+      itemsList: cartItemsList,
+      totalPrice,
+      status: "PENDING",
+      ...userDetails,
+    };
 
-        // console.log("myOrder => ", myOrder)
-        // console.log("orderRequest => ", orderRequest)
-        db.collection("users").doc(uid).collection("myOrder").add(myOrder).then((docRef) => {
-            // console.log(docRef.id)
-            db.collection("users").doc(resDetails.id).collection("orderRequest").doc(docRef.id).set(orderRequest).then((docRef) => {
-                // console.log("Document written with ID: ", docRef.id);
-                resolve('Successfully ordered')
-                // history.push("/my-orders");
-            }).catch(function (error) {
-                console.error("Error adding document: ", error.message);
-                reject(error.message)
-            })
-        }).catch(function (error) {
-            console.error("Error adding document: ", error.message);
-            reject(error.message)
-        })
-    })
+    await addDoc(collection(db, "users", uid, "myOrder"), myOrder);
+
+    await addDoc(
+      collection(db, "users", resDetails.id, "orderRequest"),
+      orderRequest
+    );
+
+    return "Successfully ordered";
+  } catch (error) {
+    throw error.message;
+  }
 }
 
-export default firebase;
-export {
-    signUp,
-    logIn,
-    addItem,
-    orderNow,
-}
+// ================= EXPORTS =================
+export { auth, db, signUp, logIn, addItem, orderNow };
+export default app;

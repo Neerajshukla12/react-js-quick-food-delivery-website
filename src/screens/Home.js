@@ -224,7 +224,7 @@ class Home extends Component {
                     </div>
                     <div style={{ position: "relative" }} className="col-lg-8 col-md-8 col-sm-12 py-2">
                       <h5 className="mb-1">Food N&amp;H</h5>
-                      <p className="mb-2"><small>Beef Roast, Cheese Burger, Doughnut</small></p>
+                      <p className="mb-2"><small>Cheese Burger, Doughnut</small></p>
                       <p>
                         <small className="">
                           <FontAwesomeIcon icon="star" className="rating mr-1" />
@@ -248,7 +248,7 @@ class Home extends Component {
                     </div>
                     <div style={{ position: "relative" }} className="col-lg-8 col-md-8 col-sm-12 py-2">
                       <h5 className="mb-1">Restaurant</h5>
-                      <p className="mb-2"><small>Apple Juice, BB.Q</small></p>
+                      <p className="mb-2"><small>Pasta</small></p>
                       <p>
                         <small className="">
                           <FontAwesomeIcon icon="star" className="rating mr-1" />
